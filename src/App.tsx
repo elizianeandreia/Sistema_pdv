@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Products from './components/Products'
 import PDV from './components/PDV'
 import Sidebar from './components/Sidebar'
 import { initialProducts } from './data/products'
@@ -80,18 +81,9 @@ function App() {
         )
 
       case 'products':
-        return (
-          <div className="p-8">
-            <h2 className="text-2xl font-bold text-gray-800">
-              Produtos
-            </h2>
-
-            <p className="mt-2 text-gray-500">
-              O gerenciamento de produtos
-              será criado na próxima etapa.
-            </p>
-          </div>
-        )
+  return (
+    <Products products={products} />
+  )
 
       case 'sales':
         return (
