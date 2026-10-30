@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import PDV from './components/PDV'
 import Products from './components/Products'
+import Reports from './components/Reports'
+import Sales from './components/Sales'
 import Sidebar from './components/Sidebar'
 import { initialProducts } from './data/products'
 import type {
@@ -9,15 +11,83 @@ import type {
   Sale,
 } from './types'
 
+const PRODUCTS_STORAGE_KEY =
+  'sistema-pdv-products'
+
+const SALES_STORAGE_KEY =
+  'sistema-pdv-sales'
+
+function loadProducts(): Product[] {
+  try {
+    const savedProducts =
+      localStorage.getItem(
+        PRODUCTS_STORAGE_KEY,
+      )
+
+    if (!savedProducts) {
+      return initialProducts
+    }
+
+    const parsedProducts =
+      JSON.parse(savedProducts)
+
+    if (!Array.isArray(parsedProducts)) {
+      return initialProducts
+    }
+
+    return parsedProducts
+  } catch {
+    return initialProducts
+  }
+}
+
+function loadSales(): Sale[] {
+  try {
+    const savedSales =
+      localStorage.getItem(
+        SALES_STORAGE_KEY,
+      )
+
+    if (!savedSales) {
+      return []
+    }
+
+    const parsedSales =
+      JSON.parse(savedSales)
+
+    if (!Array.isArray(parsedSales)) {
+      return []
+    }
+
+    return parsedSales
+  } catch {
+    return []
+  }
+}
+
 function App() {
   const [currentPage, setCurrentPage] =
     useState<Page>('pdv')
 
   const [products, setProducts] =
-    useState<Product[]>(initialProducts)
+    useState<Product[]>(loadProducts)
 
   const [sales, setSales] =
-    useState<Sale[]>([])
+    useState<Sale[]>(loadSales)
+
+  useEffect(() => {
+    localStorage.setItem(
+      PRODUCTS_STORAGE_KEY,
+      JSON.stringify(products),
+    )
+  }, [products])
+
+  useEffect(() => {
+    localStorage.setItem(
+      SALES_STORAGE_KEY,
+      JSON.stringify(sales),
+    )
+  }, [sales])
 
   const handleSaleComplete = (
     sale: Sale,
@@ -47,30 +117,54 @@ function App() {
     )
   }
 
- const handleAddProduct = (
-  newProduct: Omit<Product, 'id'>,
-) => {
-  setProducts((currentProducts) => {
-    const nextId =
-      Math.max(
-        0,
-        ...currentProducts.map(
-          (product) =>
-            Number(product.id) || 0,
-        ),
-      ) + 1
+  const handleAddProduct = (
+    newProduct: Omit<Product, 'id'>,
+  ) => {
+    setProducts((currentProducts) => {
+      const nextId =
+        Math.max(
+          0,
+          ...currentProducts.map(
+            (product) =>
+              Number(product.id) || 0,
+          ),
+        ) + 1
 
-    const product: Product = {
-      ...newProduct,
-      id: nextId.toString(),
-    }
+      const product: Product = {
+        ...newProduct,
+        id: nextId.toString(),
+      }
 
-    return [
-      product,
-      ...currentProducts,
-    ]
-  })
-}
+      return [
+        product,
+        ...currentProducts,
+      ]
+    })
+  }
+
+  const handleUpdateProduct = (
+    updatedProduct: Product,
+  ) => {
+    setProducts((currentProducts) =>
+      currentProducts.map((product) =>
+        product.id ===
+        updatedProduct.id
+          ? updatedProduct
+          : product,
+      ),
+    )
+  }
+
+  const handleDeleteProduct = (
+    productId: string,
+  ) => {
+    setProducts((currentProducts) =>
+      currentProducts.filter(
+        (product) =>
+          product.id !== productId,
+      ),
+    )
+  }
 
   const today =
     new Date().toLocaleDateString(
@@ -109,36 +203,26 @@ function App() {
         return (
           <Products
             products={products}
-            onAddProduct={handleAddProduct}
+            onAddProduct={
+              handleAddProduct
+            }
+            onUpdateProduct={
+              handleUpdateProduct
+            }
+            onDeleteProduct={
+              handleDeleteProduct
+            }
           />
         )
 
       case 'sales':
         return (
-          <div className="p-8">
-            <h2 className="text-2xl font-bold text-gray-800">
-              Vendas
-            </h2>
-
-            <p className="mt-2 text-gray-500">
-              Aqui ficará o histórico de
-              vendas realizadas.
-            </p>
-          </div>
+          <Sales sales={sales} />
         )
 
       case 'reports':
         return (
-          <div className="p-8">
-            <h2 className="text-2xl font-bold text-gray-800">
-              Relatórios
-            </h2>
-
-            <p className="mt-2 text-gray-500">
-              Aqui serão exibidos os
-              indicadores do PDV.
-            </p>
-          </div>
+          <Reports sales={sales} />
         )
 
       default:
@@ -150,7 +234,9 @@ function App() {
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar
         currentPage={currentPage}
-        onPageChange={setCurrentPage}
+        onPageChange={
+          setCurrentPage
+        }
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -158,7 +244,11 @@ function App() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold text-gray-800">
-                {pageTitles[currentPage]}
+                {
+                  pageTitles[
+                    currentPage
+                  ]
+                }
               </h2>
 
               <p className="text-sm capitalize text-gray-500">
