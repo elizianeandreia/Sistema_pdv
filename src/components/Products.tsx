@@ -7,11 +7,35 @@ interface ProductsProps {
   onAddProduct: (
     product: Omit<Product, 'id'>,
   ) => void
+  onUpdateProduct: (
+    product: Product,
+  ) => void
+  onDeleteProduct: (
+    productId: string,
+  ) => void
+}
+
+interface ProductFormData {
+  name: string
+  category: string
+  barcode: string
+  price: string
+  stock: string
+}
+
+const emptyForm: ProductFormData = {
+  name: '',
+  category: '',
+  barcode: '',
+  price: '',
+  stock: '',
 }
 
 export default function Products({
   products,
   onAddProduct,
+  onUpdateProduct,
+  onDeleteProduct,
 }: ProductsProps) {
   const [searchTerm, setSearchTerm] =
     useState('')
@@ -19,14 +43,17 @@ export default function Products({
   const [showForm, setShowForm] =
     useState(false)
 
+  const [editingProduct, setEditingProduct] =
+    useState<Product | null>(null)
+
+  const [productToDelete, setProductToDelete] =
+    useState<Product | null>(null)
+
   const [formData, setFormData] =
-    useState({
-      name: '',
-      category: '',
-      barcode: '',
-      price: '',
-      stock: '',
-    })
+    useState<ProductFormData>(emptyForm)
+
+  const [formError, setFormError] =
+    useState('')
 
   const formatCurrency = (
     value: number,
@@ -53,7 +80,8 @@ export default function Products({
         product.category
           .toLowerCase()
           .includes(term) ||
-        product.barcode?.includes(term),
+        product.barcode?.includes(term) ||
+        product.id.includes(term),
     )
   }, [products, searchTerm])
 
@@ -101,43 +129,144 @@ export default function Products({
     }
   }
 
+  const openAddForm = () => {
+    setEditingProduct(null)
+    setFormData(emptyForm)
+    setFormError('')
+    setShowForm(true)
+  }
+
+  const openEditForm = (
+    product: Product,
+  ) => {
+    setEditingProduct(product)
+
+    setFormData({
+      name: product.name,
+      category: product.category,
+      barcode:
+        product.barcode ?? '',
+      price:
+        product.price.toString(),
+      stock:
+        product.stock.toString(),
+    })
+
+    setFormError('')
+    setShowForm(true)
+  }
+
+  const closeForm = () => {
+    setShowForm(false)
+    setEditingProduct(null)
+    setFormData(emptyForm)
+    setFormError('')
+  }
+
   const handleSubmit = (
     event: FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault()
 
-    onAddProduct({
-      name: formData.name.trim(),
-      category:
-        formData.category.trim(),
+    const name =
+      formData.name.trim()
+
+    const category =
+      formData.category.trim()
+
+    const barcode =
+      formData.barcode.trim()
+
+    const price =
+      Number(formData.price)
+
+    const stock =
+      Number(formData.stock)
+
+    if (!name) {
+      setFormError(
+        'Informe o nome do produto.',
+      )
+      return
+    }
+
+    if (!category) {
+      setFormError(
+        'Informe a categoria.',
+      )
+      return
+    }
+
+    if (
+      Number.isNaN(price) ||
+      price <= 0
+    ) {
+      setFormError(
+        'Informe um preço válido.',
+      )
+      return
+    }
+
+    if (
+      Number.isNaN(stock) ||
+      stock < 0 ||
+      !Number.isInteger(stock)
+    ) {
+      setFormError(
+        'Informe uma quantidade de estoque válida.',
+      )
+      return
+    }
+
+    if (barcode) {
+      const barcodeExists =
+        products.some(
+          (product) =>
+            product.barcode ===
+              barcode &&
+            product.id !==
+              editingProduct?.id,
+        )
+
+      if (barcodeExists) {
+        setFormError(
+          'Já existe um produto com este código de barras.',
+        )
+        return
+      }
+    }
+
+    const productData = {
+      name,
+      category,
       barcode:
-        formData.barcode.trim() ||
-        undefined,
-      price: Number(formData.price),
-      stock: Number(formData.stock),
-    })
+        barcode || undefined,
+      price,
+      stock,
+    }
 
-    setFormData({
-      name: '',
-      category: '',
-      barcode: '',
-      price: '',
-      stock: '',
-    })
+    if (editingProduct) {
+      onUpdateProduct({
+        ...productData,
+        id: editingProduct.id,
+      })
+    } else {
+      onAddProduct(productData)
+    }
 
-    setShowForm(false)
+    closeForm()
   }
 
-  const handleCloseForm = () => {
-    setShowForm(false)
+  const confirmDelete = () => {
+    if (!productToDelete) {
+      return
+    }
 
-    setFormData({
-      name: '',
-      category: '',
-      barcode: '',
-      price: '',
-      stock: '',
-    })
+    onDeleteProduct(
+      productToDelete.id,
+    )
+
+    setProductToDelete(null)
   }
 
   return (
@@ -149,16 +278,13 @@ export default function Products({
           </h2>
 
           <p className="mt-1 text-sm text-gray-500">
-            Gerencie os produtos e acompanhe
-            o estoque disponível.
+            Gerencie os produtos e acompanhe o estoque disponível.
           </p>
         </div>
 
         <button
           type="button"
-          onClick={() =>
-            setShowForm(true)
-          }
+          onClick={openAddForm}
           className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white shadow-sm transition-all hover:bg-blue-700"
         >
           <i className="fas fa-plus mr-2" />
@@ -252,7 +378,7 @@ export default function Products({
                 event.target.value,
               )
             }
-            placeholder="Buscar por produto, categoria ou código de barras..."
+            placeholder="Buscar por produto, categoria, código de barras ou ID..."
             className="w-full rounded-xl border border-gray-200 py-3 pl-11 pr-4 outline-none transition-all focus:border-blue-500"
           />
         </div>
@@ -355,6 +481,11 @@ export default function Products({
                           <button
                             type="button"
                             title="Editar produto"
+                            onClick={() =>
+                              openEditForm(
+                                product,
+                              )
+                            }
                             className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100"
                           >
                             <i className="fas fa-pen" />
@@ -363,6 +494,11 @@ export default function Products({
                           <button
                             type="button"
                             title="Excluir produto"
+                            onClick={() =>
+                              setProductToDelete(
+                                product,
+                              )
+                            }
                             className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-600 transition-colors hover:bg-red-100"
                           >
                             <i className="fas fa-trash" />
@@ -398,18 +534,21 @@ export default function Products({
             <div className="mb-6 flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">
-                  Novo produto
+                  {editingProduct
+                    ? 'Editar produto'
+                    : 'Novo produto'}
                 </h3>
 
                 <p className="text-sm text-gray-500">
-                  Preencha os dados do
-                  produto.
+                  {editingProduct
+                    ? 'Altere os dados do produto.'
+                    : 'Preencha os dados do produto.'}
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={handleCloseForm}
+                onClick={closeForm}
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 aria-label="Fechar"
               >
@@ -442,6 +581,7 @@ export default function Products({
                   }
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-blue-500"
                   placeholder="Ex.: Café 500 g"
+                  autoFocus
                 />
               </div>
 
@@ -511,7 +651,7 @@ export default function Products({
                     id="productPrice"
                     type="number"
                     required
-                    min="0"
+                    min="0.01"
                     step="0.01"
                     value={
                       formData.price
@@ -560,12 +700,17 @@ export default function Products({
                 </div>
               </div>
 
+              {formError && (
+                <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <i className="fas fa-circle-exclamation mr-2" />
+                  {formError}
+                </div>
+              )}
+
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={
-                    handleCloseForm
-                  }
+                  onClick={closeForm}
                   className="flex-1 rounded-xl bg-gray-100 py-3 font-medium text-gray-700 hover:bg-gray-200"
                 >
                   Cancelar
@@ -576,10 +721,62 @@ export default function Products({
                   className="flex-1 rounded-xl bg-blue-600 py-3 font-bold text-white hover:bg-blue-700"
                 >
                   <i className="fas fa-floppy-disk mr-2" />
-                  Salvar produto
+
+                  {editingProduct
+                    ? 'Salvar alterações'
+                    : 'Salvar produto'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-2xl text-red-600">
+              <i className="fas fa-trash" />
+            </div>
+
+            <h3 className="text-xl font-bold text-gray-800">
+              Excluir produto
+            </h3>
+
+            <p className="mt-2 text-sm leading-6 text-gray-500">
+              Tem certeza de que deseja excluir{' '}
+              <strong className="text-gray-700">
+                {productToDelete.name}
+              </strong>
+              ?
+            </p>
+
+            <p className="mt-2 text-sm text-red-600">
+              Esta ação não poderá ser desfeita.
+            </p>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setProductToDelete(
+                    null,
+                  )
+                }
+                className="flex-1 rounded-xl bg-gray-100 py-3 font-medium text-gray-700 hover:bg-gray-200"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="flex-1 rounded-xl bg-red-600 py-3 font-bold text-white hover:bg-red-700"
+              >
+                <i className="fas fa-trash mr-2" />
+                Excluir
+              </button>
+            </div>
           </div>
         </div>
       )}
