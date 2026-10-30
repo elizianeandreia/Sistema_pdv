@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import Products from './components/Products'
 import PDV from './components/PDV'
+import Products from './components/Products'
 import Sidebar from './components/Sidebar'
 import { initialProducts } from './data/products'
 import type {
@@ -47,6 +47,31 @@ function App() {
     )
   }
 
+ const handleAddProduct = (
+  newProduct: Omit<Product, 'id'>,
+) => {
+  setProducts((currentProducts) => {
+    const nextId =
+      Math.max(
+        0,
+        ...currentProducts.map(
+          (product) =>
+            Number(product.id) || 0,
+        ),
+      ) + 1
+
+    const product: Product = {
+      ...newProduct,
+      id: nextId.toString(),
+    }
+
+    return [
+      product,
+      ...currentProducts,
+    ]
+  })
+}
+
   const today =
     new Date().toLocaleDateString(
       'pt-BR',
@@ -81,9 +106,12 @@ function App() {
         )
 
       case 'products':
-  return (
-    <Products products={products} />
-  )
+        return (
+          <Products
+            products={products}
+            onAddProduct={handleAddProduct}
+          />
+        )
 
       case 'sales':
         return (

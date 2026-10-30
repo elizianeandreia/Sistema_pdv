@@ -1,17 +1,36 @@
 import { useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
 import type { Product } from '../types'
 
 interface ProductsProps {
   products: Product[]
+  onAddProduct: (
+    product: Omit<Product, 'id'>,
+  ) => void
 }
 
 export default function Products({
   products,
+  onAddProduct,
 }: ProductsProps) {
   const [searchTerm, setSearchTerm] =
     useState('')
 
-  const formatCurrency = (value: number) =>
+  const [showForm, setShowForm] =
+    useState(false)
+
+  const [formData, setFormData] =
+    useState({
+      name: '',
+      category: '',
+      barcode: '',
+      price: '',
+      stock: '',
+    })
+
+  const formatCurrency = (
+    value: number,
+  ) =>
     value.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -26,17 +45,16 @@ export default function Products({
       return products
     }
 
-    return products.filter((product) => {
-      return (
+    return products.filter(
+      (product) =>
         product.name
           .toLowerCase()
           .includes(term) ||
         product.category
           .toLowerCase()
           .includes(term) ||
-        product.barcode?.includes(term)
-      )
-    })
+        product.barcode?.includes(term),
+    )
   }, [products, searchTerm])
 
   const totalProducts = products.length
@@ -83,9 +101,47 @@ export default function Products({
     }
   }
 
+  const handleSubmit = (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+
+    onAddProduct({
+      name: formData.name.trim(),
+      category:
+        formData.category.trim(),
+      barcode:
+        formData.barcode.trim() ||
+        undefined,
+      price: Number(formData.price),
+      stock: Number(formData.stock),
+    })
+
+    setFormData({
+      name: '',
+      category: '',
+      barcode: '',
+      price: '',
+      stock: '',
+    })
+
+    setShowForm(false)
+  }
+
+  const handleCloseForm = () => {
+    setShowForm(false)
+
+    setFormData({
+      name: '',
+      category: '',
+      barcode: '',
+      price: '',
+      stock: '',
+    })
+  }
+
   return (
     <div className="space-y-6 p-6">
-      {/* Cabeçalho */}
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">
@@ -100,6 +156,9 @@ export default function Products({
 
         <button
           type="button"
+          onClick={() =>
+            setShowForm(true)
+          }
           className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white shadow-sm transition-all hover:bg-blue-700"
         >
           <i className="fas fa-plus mr-2" />
@@ -107,7 +166,6 @@ export default function Products({
         </button>
       </div>
 
-      {/* Indicadores */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
@@ -182,7 +240,6 @@ export default function Products({
         </div>
       </div>
 
-      {/* Busca */}
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="relative">
           <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -201,7 +258,6 @@ export default function Products({
         </div>
       </div>
 
-      {/* Tabela */}
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[850px]">
@@ -335,6 +391,198 @@ export default function Products({
           </div>
         )}
       </div>
+
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">
+                  Novo produto
+                </h3>
+
+                <p className="text-sm text-gray-500">
+                  Preencha os dados do
+                  produto.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCloseForm}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Fechar"
+              >
+                <i className="fas fa-xmark" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-4"
+            >
+              <div>
+                <label
+                  htmlFor="productName"
+                  className="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  Nome do produto
+                </label>
+
+                <input
+                  id="productName"
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(event) =>
+                    setFormData({
+                      ...formData,
+                      name: event.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-blue-500"
+                  placeholder="Ex.: Café 500 g"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="productCategory"
+                  className="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  Categoria
+                </label>
+
+                <input
+                  id="productCategory"
+                  type="text"
+                  required
+                  value={
+                    formData.category
+                  }
+                  onChange={(event) =>
+                    setFormData({
+                      ...formData,
+                      category:
+                        event.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-blue-500"
+                  placeholder="Ex.: Alimentos"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="productBarcode"
+                  className="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  Código de barras
+                </label>
+
+                <input
+                  id="productBarcode"
+                  type="text"
+                  value={
+                    formData.barcode
+                  }
+                  onChange={(event) =>
+                    setFormData({
+                      ...formData,
+                      barcode:
+                        event.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-blue-500"
+                  placeholder="Opcional"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="productPrice"
+                    className="mb-1 block text-sm font-medium text-gray-700"
+                  >
+                    Preço
+                  </label>
+
+                  <input
+                    id="productPrice"
+                    type="number"
+                    required
+                    min="0"
+                    step="0.01"
+                    value={
+                      formData.price
+                    }
+                    onChange={(event) =>
+                      setFormData({
+                        ...formData,
+                        price:
+                          event.target
+                            .value,
+                      })
+                    }
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-blue-500"
+                    placeholder="0,00"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="productStock"
+                    className="mb-1 block text-sm font-medium text-gray-700"
+                  >
+                    Estoque
+                  </label>
+
+                  <input
+                    id="productStock"
+                    type="number"
+                    required
+                    min="0"
+                    step="1"
+                    value={
+                      formData.stock
+                    }
+                    onChange={(event) =>
+                      setFormData({
+                        ...formData,
+                        stock:
+                          event.target
+                            .value,
+                      })
+                    }
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-blue-500"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={
+                    handleCloseForm
+                  }
+                  className="flex-1 rounded-xl bg-gray-100 py-3 font-medium text-gray-700 hover:bg-gray-200"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  className="flex-1 rounded-xl bg-blue-600 py-3 font-bold text-white hover:bg-blue-700"
+                >
+                  <i className="fas fa-floppy-disk mr-2" />
+                  Salvar produto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
