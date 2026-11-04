@@ -179,7 +179,12 @@ function App() {
         return <Sales sales={sales} />
 
       case 'reports':
-        return <Reports sales={sales} />
+        return (
+          <Reports
+            sales={sales}
+            products={products}
+          />
+        )
 
       default:
         return null
