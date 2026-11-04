@@ -9,8 +9,16 @@ interface PDVProps {
   onUpdateStock: (productId: string, quantity: number) => void
 }
 
+interface AddedFeedback {
+  productId: string
+  timestamp: number
+}
+
 const formatCurrency = (value: number) =>
-  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  value.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  })
 
 const parseMoney = (value: string): number | null => {
   const normalized = value.trim()
@@ -109,6 +117,8 @@ export default function PDV({
     total: 0,
     change: 0,
   })
+  const [addedFeedback, setAddedFeedback] =
+    useState<AddedFeedback | null>(null)
 
   const processingRef = useRef(false)
 
@@ -200,6 +210,18 @@ export default function PDV({
     validStock
 
   useEffect(() => {
+    if (!addedFeedback) {
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      setAddedFeedback(null)
+    }, 1500)
+
+    return () => window.clearTimeout(timeout)
+  }, [addedFeedback])
+
+  useEffect(() => {
     if (!showSuccess) {
       return
     }
@@ -217,13 +239,21 @@ export default function PDV({
       return
     }
 
+    const existing = cart.find(
+      (item) => item.product.id === product.id,
+    )
+
+    if (existing && existing.quantity >= product.stock) {
+      return
+    }
+
     setCart((currentCart) => {
-      const existing = currentCart.find(
+      const currentItem = currentCart.find(
         (item) => item.product.id === product.id,
       )
 
-      if (existing) {
-        if (existing.quantity >= product.stock) {
+      if (currentItem) {
+        if (currentItem.quantity >= product.stock) {
           return currentCart
         }
 
@@ -245,6 +275,11 @@ export default function PDV({
           quantity: 1,
         },
       ]
+    })
+
+    setAddedFeedback({
+      productId: product.id,
+      timestamp: Date.now(),
     })
   }
 
@@ -331,6 +366,7 @@ export default function PDV({
     setPaymentMethod('dinheiro')
     setShowPayment(false)
     setMobileCartOpen(false)
+    setAddedFeedback(null)
     setShowSuccess(true)
   }
 
@@ -412,38 +448,72 @@ export default function PDV({
               const unavailable =
                 (cartItem?.quantity ?? 0) >= product.stock
 
+              const recentlyAdded =
+                addedFeedback?.productId === product.id
+
               return (
-                <button
+                <article
                   key={product.id}
-                  type="button"
-                  onClick={() => addToCart(product)}
-                  disabled={unavailable}
-                  className="group min-w-0 rounded-xl border border-gray-200 bg-surface p-3 text-left transition-all hover:border-primary/30 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60 sm:p-4"
+                  className="group flex min-w-0 flex-col rounded-xl border border-gray-200 bg-surface p-3 transition-all hover:border-primary/30 hover:shadow-sm sm:p-4"
                 >
                   <ProductPhoto name={product.name} />
 
-                  <p className="break-words text-sm font-semibold text-ink transition-colors group-hover:text-primary">
-                    {product.name}
-                  </p>
-
-                  <p className="mt-1 text-xs text-ink-muted">
-                    {product.category}
-                  </p>
-
-                  <p className="mt-3 break-words text-base font-bold text-primary sm:text-lg">
-                    {formatCurrency(product.price)}
-                  </p>
-
-                  <p className="mt-1 text-xs text-ink-muted">
-                    Estoque: {product.stock} un.
-                  </p>
-
-                  {unavailable && (
-                    <p className="mt-2 text-xs font-medium text-orange-600">
-                      Limite de estoque atingido
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <p className="break-words text-sm font-semibold text-ink">
+                      {product.name}
                     </p>
-                  )}
-                </button>
+
+                    <p className="mt-1 text-xs text-ink-muted">
+                      {product.category}
+                    </p>
+
+                    <p className="mt-3 break-words text-base font-bold text-primary sm:text-lg">
+                      {formatCurrency(product.price)}
+                    </p>
+
+                    <p className="mt-1 text-xs text-ink-muted">
+                      Estoque: {product.stock} un.
+                    </p>
+
+                    <div className="mt-auto pt-4">
+                      <button
+                        type="button"
+                        onClick={() => addToCart(product)}
+                        disabled={unavailable}
+                        aria-label={`Adicionar ${product.name} ao carrinho`}
+                        className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-2 py-2.5 text-xs font-semibold transition-colors sm:text-sm ${
+                          unavailable
+                            ? 'cursor-not-allowed bg-gray-100 text-gray-400'
+                            : recentlyAdded
+                              ? 'bg-green-50 text-success'
+                              : 'bg-primary text-white hover:bg-primary-hover'
+                        }`}
+                      >
+                        {unavailable ? (
+                          <>
+                            <i className="fas fa-circle-check" />
+                            Limite atingido
+                          </>
+                        ) : recentlyAdded ? (
+                          <>
+                            <i className="fas fa-check" />
+                            Adicionado!
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-cart-plus" />
+                            <span className="sm:hidden">
+                              Adicionar
+                            </span>
+                            <span className="hidden sm:inline">
+                              Adicionar ao carrinho
+                            </span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </article>
               )
             })}
           </div>
@@ -544,7 +614,8 @@ export default function PDV({
                         removeFromCart(item.product.id)
                       }
                       aria-label={`Remover ${item.product.name}`}
-                      className="text-red-400 transition-colors hover:text-danger"
+                      title="Remover produto"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-red-400 transition-colors hover:bg-red-50 hover:text-danger"
                     >
                       <i className="fas fa-trash" />
                     </button>
@@ -561,7 +632,8 @@ export default function PDV({
                           )
                         }
                         aria-label={`Diminuir quantidade de ${item.product.name}`}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface transition-colors hover:bg-gray-200"
+                        title="Diminuir quantidade"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface transition-colors hover:bg-gray-200"
                       >
                         <i className="fas fa-minus text-xs" />
                       </button>
@@ -580,7 +652,8 @@ export default function PDV({
                         }
                         disabled={item.quantity >= availableStock}
                         aria-label={`Aumentar quantidade de ${item.product.name}`}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-soft text-primary transition-colors hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-40"
+                        title="Adicionar mais uma unidade"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-soft text-primary transition-colors hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <i className="fas fa-plus text-xs" />
                       </button>
@@ -672,6 +745,7 @@ export default function PDV({
               onClick={() => {
                 setCart([])
                 setDiscountInput('')
+                setAddedFeedback(null)
               }}
               className="w-full rounded-xl border border-red-200 py-3 text-sm font-medium text-danger transition-colors hover:bg-red-50"
             >
