@@ -1,10 +1,11 @@
 
 import { useMemo, useState } from 'react'
-import type { Sale } from '../types'
+import type { Product, Sale } from '../types'
 import { getProductImage } from '../data/productImages'
 
 interface ReportsProps {
   sales: Sale[]
+  products: Product[]
 }
 
 const formatCurrency = (value: number) =>
@@ -72,7 +73,10 @@ function ProductPhoto({ name }: { name: string }) {
   )
 }
 
-export default function Reports({ sales }: ReportsProps) {
+export default function Reports({
+  sales,
+  products,
+}: ReportsProps) {
   const totalRevenue = useMemo(
     () =>
       sales.reduce(
@@ -164,7 +168,14 @@ export default function Reports({ sales }: ReportsProps) {
   }, [sales])
 
   const topProducts = useMemo(() => {
-    const products = new Map<
+    const currentProducts = new Map(
+      products.map((product) => [
+        product.id,
+        product,
+      ]),
+    )
+
+    const soldProducts = new Map<
       string,
       {
         id: string
@@ -176,18 +187,24 @@ export default function Reports({ sales }: ReportsProps) {
 
     sales.forEach((sale) => {
       sale.items.forEach((item) => {
-        const existing = products.get(item.product.id)
+        const productId = item.product.id
+        const currentProduct = currentProducts.get(productId)
+        const productName =
+          currentProduct?.name ?? item.product.name
+
+        const existing = soldProducts.get(productId)
 
         const revenue =
           item.product.price * item.quantity
 
         if (existing) {
+          existing.name = productName
           existing.quantity += item.quantity
           existing.revenue += revenue
         } else {
-          products.set(item.product.id, {
-            id: item.product.id,
-            name: item.product.name,
+          soldProducts.set(productId, {
+            id: productId,
+            name: productName,
             quantity: item.quantity,
             revenue,
           })
@@ -195,10 +212,10 @@ export default function Reports({ sales }: ReportsProps) {
       })
     })
 
-    return Array.from(products.values())
+    return Array.from(soldProducts.values())
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 5)
-  }, [sales])
+  }, [sales, products])
 
   const recentSales = useMemo(
     () =>
