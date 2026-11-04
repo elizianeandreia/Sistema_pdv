@@ -59,7 +59,7 @@ export const initialProducts: Product[] = [
   },
   {
     id: '8',
-    name: 'Queijo Muçarela 1 kg',
+    name: 'Queijo Mussarela 1 kg',
     price: 39.90,
     category: 'Laticínios',
     stock: 20,
