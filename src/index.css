@@ -82,11 +82,6 @@ select {
   min-width: 0;
 }
 
-img {
-  max-width: 100%;
-  height: auto;
-}
-
 .mobile-scrollbar-hide {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -94,6 +89,10 @@ img {
 
 .mobile-scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+.mobile-scrollbar-hide::-webkit-scrollbar-thumb {
+  background: transparent;
 }
 
 button:focus-visible,
