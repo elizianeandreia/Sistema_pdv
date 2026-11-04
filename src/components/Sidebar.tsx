@@ -45,6 +45,8 @@ function SidebarContent({
   onNavigate,
   onClose,
 }: SidebarContentProps) {
+  const currentYear = new Date().getFullYear()
+
   return (
     <div className="flex h-full w-full flex-col bg-surface">
       <div className="border-b border-gray-200 p-4 sm:p-5">
@@ -113,17 +115,48 @@ function SidebarContent({
         })}
       </nav>
 
-      <div className="border-t border-gray-200 p-4">
-        <div className="rounded-xl bg-surface-subtle p-3">
-          <p className="text-sm font-medium text-ink">
-            Sistema de demonstração
+      <footer className="shrink-0 border-t border-gray-200 p-4">
+        <div className="rounded-xl bg-surface-subtle p-3 text-center">
+          <div className="mb-2 flex items-center justify-center gap-2 text-primary">
+            <i className="fas fa-shield-halved text-sm" />
+
+            <span className="text-xs font-semibold">
+              Sistema de demonstração
+            </span>
+          </div>
+
+          <p className="text-xs font-semibold leading-5 text-ink">
+            © {currentYear} LTHS Tecnologia
           </p>
 
-          <p className="mt-1 text-xs leading-5 text-ink-muted">
-            Projeto desenvolvido para portfólio
+          <p className="mt-1 text-[11px] leading-4 text-ink-muted">
+            Todos os direitos reservados.
           </p>
+
+          <div className="my-3 border-t border-gray-200" />
+
+          <p className="text-[11px] leading-5 text-ink-muted">
+            Sistema desenvolvido para fins de portfólio.
+            Operações e pagamentos simulados.
+          </p>
+
+          <p className="mt-2 text-[10px] leading-4 text-ink-muted">
+            Marcas e imagens de produtos pertencem aos seus
+            respectivos titulares.
+          </p>
+
+          <a
+            href="https://www.lthstecnologia.com.br/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center justify-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary-hover"
+          >
+            <i className="fas fa-globe" />
+            LTHS Tecnologia
+            <i className="fas fa-arrow-up-right-from-square text-[9px]" />
+          </a>
         </div>
-      </div>
+      </footer>
     </div>
   )
 }
