@@ -10,7 +10,7 @@ const productImages: Record<string, string> = {
   'Queijo Mussarela 1 kg': 'Queijo Mussarela 1 kg.jpg.webp',
   'Iogurte Natural': 'Iogurte Natural.png',
   'Manteiga 200 g': 'Manteiga 200 g.png',
-  'Refrigerante 2 L': 'Refrigerante 2L.webp',
+  'Refrigerante 2 L': 'Refrigerante 2 L.jpg',
   'Suco de Laranja 1 L': 'Suco de Laranja 1 L.png',
   'Água Mineral 500 ml': 'Água Mineral 500 ml.png',
   'Água com Gás 500 ml': 'Água com Gás 500 ml.jpg',
