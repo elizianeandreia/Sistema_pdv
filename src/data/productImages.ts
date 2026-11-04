@@ -14,6 +14,12 @@ const productImages: Record<string, string> = {
   'Suco de Laranja 1 L': 'Suco de Laranja 1 L.png',
   'Água Mineral 500 ml': 'Água Mineral 500 ml.png',
   'Água com Gás 500 ml': 'Água com Gás 500 ml.jpg',
+  'Sabonete': 'Sabonete.png',
+  'Shampoo 400 ml': 'Shampoo.png',
+  'Papel Higiênico 12 un.': 'Papel Higiênico.png',
+  'Detergente 500 ml': 'Detergente 500 ml.png',
+  'Sabão em Pó 1 kg': 'Sabão em Pó 1 kg.png',
+  'Desinfetante 1 L': 'Desinfetante 1 L.png',
 }
 
 export function getProductImage(
